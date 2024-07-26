@@ -231,7 +231,7 @@ async function updateTronBalances(network_id) {
 
             if (!row.address){
                 console.warn(`Skipping empty address for wallet_id ${row.wallet_id}`);
-                return;
+                continue;
             }
 
             const balances = await fetchBalances(row.address);
