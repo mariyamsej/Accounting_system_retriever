@@ -221,7 +221,7 @@ exports.fetchBalances = fetchBalances;
 async function updateTronBalances(network_id) {
     try {
         const rows = await pool.query(
-            "SELECT address, wallet_id FROM test_wallet WHERE network = $1", [network_id]
+            "SELECT address, wallet_id FROM test_wallet WHERE network = $1 ORDER BY wallet_id DESC", [network_id]
         );
 
         console.log("******")
