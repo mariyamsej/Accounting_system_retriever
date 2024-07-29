@@ -164,49 +164,86 @@ function delay(ms) {
 }
 
 async function fetchBalances(address) {
-    const url = `https://api.trongrid.io/v1/accounts/${address}`;
-    const config = {
+    const trongridUrl = `https://api.trongrid.io/v1/accounts/${address}`;
+    const tronscanUrl = `https://apilist.tronscanapi.com/api/accountv2?address=${address}`;
+
+    const trongridConfig = {
         headers: {'TRON-PRO-API-KEY': process.env.TRONGRID_KEY}
     };
+
+    const tronscanConfig = {
+        headers: {'TRON-PRO-API-KEY': process.env.TRONSCAN_KEY}
+    }
+
     let usdtBalance = 0, trxBalance = 0, tlcaBalance = 0, ldftBalance = 0;
 
     try {
         console.log("I'M HERE 1");
-        const response = await axios.get(url, config);
+        const response = await axios.get(trongridUrl, trongridConfig);
         const data = response.data.data;
         console.log(response.data.data[0]);
 
-        if (!Array.isArray(data) || data.addr_length === 0) {
-            console.warn(`Empty balances for ${address}`);
-            return { usdtBalance, trxBalance, tlcaBalance, ldftBalance };
-        }
+        if (!Array.isArray(data) || data.length === 0) {
+            console.warn(`Empty or invalid response from Trongrid for ${address}. Fetching from Tronscan.`);
 
-        const trc20Tokens = data[0]?.trc20 ?? null;
-        const usdtTokenAddress = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'; // USDT token address on Tron
+            try {
+                const tronscanResponse = await axios.get(tronscanUrl, tronscanConfig);
+                const tronscanData = tronscanResponse.data;
 
-        if (trc20Tokens) {
-            for (const token of trc20Tokens) {
-                if (token[usdtTokenAddress]) {
-                    usdtBalance = token[usdtTokenAddress];
+                console.log(tronscanResponse);
+
+                if (Array.isArray(tronscanData.withPriceTokens) && data) {
+                    for (const token of tronscanData.withPriceTokens) {
+                        switch (token.tokenAbbr.toLowerCase()) {
+                            case 'usdt':
+                                usdtBalance = parseFloat(token.balance) / Math.pow(10, token.tokenDecimal);
+                                break;
+                            case 'tlca':
+                                tlcaBalance = parseFloat(token.balance) / Math.pow(10, token.tokenDecimal);
+                                break;
+                            case 'ldft':
+                                ldftBalance = token.balance;
+                                break;
+                            case 'trx':
+                                trxBalance = token.balance;
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                } else {
+                    console.error(`Empty or invalid response from Tronscan for ${address}`);
+                }
+            } catch (tronscanError) {
+                console.error(`Error fetching balances from Tronscan for ${address}: ${tronscanError}`);
+            }
+        } else {
+            const trc20Tokens = data[0]?.trc20 ?? null;
+            const usdtTokenAddress = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'; // USDT token address on Tron
+
+            if (trc20Tokens) {
+                for (const token of trc20Tokens) {
+                    if (token[usdtTokenAddress]) {
+                        usdtBalance = token[usdtTokenAddress];
+                    }
                 }
             }
-        }
 
-        console.log("I'M HERE 2");
-        const trc10Tokens = data[0]?.assetV2 ?? null;
+            const trc10Tokens = data[0]?.assetV2 ?? null;
 
-        if (trc10Tokens) {
-            for (const token of trc10Tokens) {
-                if (token.key === "1005031") {
-                    ldftBalance = token.value;
-                } else if (token.key === "1005032") {
-                    tlcaBalance = token.value;
+            if (trc10Tokens) {
+                for (const token of trc10Tokens) {
+                    if (token.key === "1005031") { //ldft
+                        ldftBalance = token.value;
+                    } else if (token.key === "1005032") { //tlca
+                        tlcaBalance = token.value;
+                    }
                 }
             }
+
+            trxBalance = data[0]?.balance ?? 0;
         }
 
-        console.log("I'M HERE 3");
-        trxBalance = data[0]?.balance ?? 0;
         return { usdtBalance, trxBalance, tlcaBalance, ldftBalance };
 
     } catch (error) {
