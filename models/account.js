@@ -159,9 +159,9 @@ async function getAllAccountAddresses(network_id) {
 
 exports.getAllAccountAddresses = getAllAccountAddresses
 
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
+// function delay(ms) {
+//     return new Promise(resolve => setTimeout(resolve, ms));
+// }
 
 async function fetchBalancesTronscan(address) {
     const tronscanUrl = `https://apilist.tronscanapi.com/api/accountv2?address=${address}`;
@@ -173,7 +173,7 @@ async function fetchBalancesTronscan(address) {
         const tronscanResponse = await axios.get(tronscanUrl, tronscanConfig);
         const tronscanData = tronscanResponse.data;
 
-        console.log('IM HERE 1');
+        // console.log('IM HERE 1');
         console.log(tronscanData.withPriceTokens);
 
         if (Array.isArray(tronscanData.withPriceTokens) && tronscanData) {
@@ -204,8 +204,8 @@ async function fetchBalancesTronscan(address) {
 
             return null;
         }
-    } catch (tronscanError) {
-        console.error(`Error fetching balances from Tronscan for ${address}: ${tronscanError}`);
+    } catch (error) {
+        console.error(`Error fetching balances from Tronscan for ${address}: ${error}`);
 
         return null;
     }
