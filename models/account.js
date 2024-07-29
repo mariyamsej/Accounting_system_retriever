@@ -236,7 +236,7 @@ async function fetchBalances(address) {
             }
 
         } else {
-            const trc20Tokens = data[0]?.trc20 ?? null;
+            const trc20Tokens = data[0]?.trc20 ?? 0;
             const usdtTokenAddress = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'; // USDT token address on Tron
 
             if (trc20Tokens) {
@@ -247,7 +247,7 @@ async function fetchBalances(address) {
                 }
             }
 
-            const trc10Tokens = data[0]?.assetV2 ?? null;
+            const trc10Tokens = data[0]?.assetV2 ?? 0;
 
             if (trc10Tokens) {
                 for (const token of trc10Tokens) {
