@@ -163,17 +163,60 @@ function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function fetchBalances(address) {
-    const trongridUrl = `https://api.trongrid.io/v1/accounts/${address}`;
+async function fetchBalancesTronscan(address) {
     const tronscanUrl = `https://apilist.tronscanapi.com/api/accountv2?address=${address}`;
-
-    const trongridConfig = {
-        headers: {'TRON-PRO-API-KEY': process.env.TRONGRID_KEY}
-    };
 
     const tronscanConfig = {
         headers: {'TRON-PRO-API-KEY': process.env.TRONSCAN_KEY}
     }
+    try {
+        const tronscanResponse = await axios.get(tronscanUrl, tronscanConfig);
+        const tronscanData = tronscanResponse.data;
+
+        console.log('IM HERE 1');
+        console.log(tronscanData.withPriceTokens);
+
+        if (Array.isArray(tronscanData.withPriceTokens) && tronscanData) {
+            let usdtBalance = 0, trxBalance = 0, tlcaBalance = 0, ldftBalance = 0;
+
+            for (const token of tronscanData.withPriceTokens) {
+                switch (token.tokenAbbr.toLowerCase()) {
+                    case 'usdt':
+                        usdtBalance = token.balance;
+                        break;
+                    case 'tlca':
+                        tlcaBalance = token.balance;
+                        break;
+                    case 'ldft':
+                        ldftBalance = token.balance;
+                        break;
+                    case 'trx':
+                        trxBalance = token.balance;
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            return { usdtBalance, trxBalance, tlcaBalance, ldftBalance };
+        } else {
+            console.error(`Empty or invalid response from Tronscan for ${address}`);
+
+            return null;
+        }
+    } catch (tronscanError) {
+        console.error(`Error fetching balances from Tronscan for ${address}: ${tronscanError}`);
+
+        return null;
+    }
+}
+
+async function fetchBalances(address) {
+    const trongridUrl = `https://api.trongrid.io/v1/accounts/${address}`;
+
+    const trongridConfig = {
+        headers: {'TRON-PRO-API-KEY': process.env.TRONGRID_KEY}
+    };
 
     let usdtBalance = 0, trxBalance = 0, tlcaBalance = 0, ldftBalance = 0;
 
@@ -186,37 +229,12 @@ async function fetchBalances(address) {
         if (!Array.isArray(data) || data.length === 0) {
             console.warn(`Empty or invalid response from Trongrid for ${address}. Fetching from Tronscan.`);
 
-            try {
-                const tronscanResponse = await axios.get(tronscanUrl, tronscanConfig);
-                const tronscanData = tronscanResponse.data;
+            const balances = await fetchBalancesTronscan(address);
 
-                console.log(tronscanResponse);
-
-                if (Array.isArray(tronscanData.withPriceTokens) && data) {
-                    for (const token of tronscanData.withPriceTokens) {
-                        switch (token.tokenAbbr.toLowerCase()) {
-                            case 'usdt':
-                                usdtBalance = parseFloat(token.balance) / Math.pow(10, token.tokenDecimal);
-                                break;
-                            case 'tlca':
-                                tlcaBalance = parseFloat(token.balance) / Math.pow(10, token.tokenDecimal);
-                                break;
-                            case 'ldft':
-                                ldftBalance = parseFloat(token.balance) / Math.pow(10, token.tokenDecimal);
-                                break;
-                            case 'trx':
-                                trxBalance = parseFloat(token.balance) / Math.pow(10, token.tokenDecimal);
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-                } else {
-                    console.error(`Empty or invalid response from Tronscan for ${address}`);
-                }
-            } catch (tronscanError) {
-                console.error(`Error fetching balances from Tronscan for ${address}: ${tronscanError}`);
+            if (balances) {
+                return ({ usdtBalance, trxBalance, tlcaBalance, ldftBalance } = balances);
             }
+
         } else {
             const trc20Tokens = data[0]?.trc20 ?? null;
             const usdtTokenAddress = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'; // USDT token address on Tron
