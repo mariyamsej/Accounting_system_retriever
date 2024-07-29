@@ -202,10 +202,10 @@ async function fetchBalances(address) {
                                 tlcaBalance = parseFloat(token.balance) / Math.pow(10, token.tokenDecimal);
                                 break;
                             case 'ldft':
-                                ldftBalance = token.balance;
+                                ldftBalance = parseFloat(token.balance) / Math.pow(10, token.tokenDecimal);
                                 break;
                             case 'trx':
-                                trxBalance = token.balance;
+                                trxBalance = parseFloat(token.balance) / Math.pow(10, token.tokenDecimal);
                                 break;
                             default:
                                 break;
@@ -359,4 +359,3 @@ async function updateTest(network_id) {
 }
 
 exports.updateTest = updateTest;
-
