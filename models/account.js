@@ -221,7 +221,7 @@ async function fetchBalances(address) {
     let usdtBalance = 0, trxBalance = 0, tlcaBalance = 0, ldftBalance = 0;
 
     try {
-        console.log("I'M HERE 1");
+        // console.log("I'M HERE 1");
         const response = await axios.get(trongridUrl, trongridConfig);
         const data = response.data.data;
         console.log(response.data.data[0]);
@@ -265,7 +265,11 @@ async function fetchBalances(address) {
         return { usdtBalance, trxBalance, tlcaBalance, ldftBalance };
 
     } catch (error) {
-        console.error(`Error fetching balances for ${address}: ${error}`);
+        if (error.code === 'ENOTFOUND') {
+            console.error(`DNS error: Unable to resolve the address for ${trongridUrl}. Check your network connection or the URL.`);
+        } else {
+            console.error(`Error fetching balances for ${address}: ${error.message}`);
+        }
         return null;
     }
 }
@@ -276,10 +280,10 @@ exports.fetchBalances = fetchBalances;
 async function updateTronBalances(network_id) {
     try {
         const rows = await pool.query(
-            "SELECT address, wallet_id FROM test_wallet WHERE network = $1 ORDER BY wallet_id DESC", [network_id]
+            "SELECT address, wallet_id FROM wallets_neo_new WHERE network = $1 ORDER BY wallet_id DESC", [network_id]
         );
 
-        console.log("******")
+        // console.log("******")
 
         for (const row of rows.rows) {
             //await delay(10);
@@ -289,39 +293,52 @@ async function updateTronBalances(network_id) {
                 continue;
             }
 
-            const balances = await fetchBalances(row.address);
-
-            await pool.query(
-                "UPDATE test_wallet SET usdt_amount = $1, trx_amount = $2, ldft_amount = $3, tlca_amount = $4 WHERE address = $5",
-                [balances.usdtBalance / 1000000.0, balances.trxBalance / 1000000.0, balances.ldftBalance / 1000000.0, balances.tlcaBalance / 1000000.0, row.address]
-            );
-
-            console.log("!!!!!!");
-
-            const query =`
-                INSERT INTO balances_history (ts, usdt_balance, trx_balance, ldft_balance, tlca_balance, neo_id)
-                VALUES ($1, $2, $3, $4, $5, $6);
-            `;
-
-            const now = new Date();
-            const localDate = new Date(now.getTime() + (5 * 60 * 60 * 1000)); // Adds 5 hours in milliseconds to the current UTC time
-            localDate.toISOString()
-            const values = [
-                localDate.toISOString(),
-                balances.usdtBalance / 1000000.0,   // Adjusting balances as per your example if needed
-                balances.trxBalance / 1000000.0,
-                balances.ldftBalance / 1000000.0,
-                balances.tlcaBalance / 1000000.0,
-                row.wallet_id
-            ];
+            let balances;
+            try {
+                balances = await fetchBalances(row.address);
+                if (!balances) {
+                    console.error(`Failed to fetch balances for address ${row.address}. Skipping.`);
+                    continue;
+                }
+            } catch (fetchError) {
+                console.error(`Error fetching balances for address ${row.address}: ${fetchError.message}. Skipping.`);
+                continue;
+            }
 
             try {
-                await pool.query(query, values);
-                //console.log('Insertion successful');
-            } catch (err) {
-                console.error('Error during the database insertion', err.stack);
+                await pool.query(
+                    "UPDATE wallets_neo_new SET usdt_amount = $1, trx_amount = $2, ldft_amount = $3, tlca_amount = $4 WHERE address = $5",
+                    [balances.usdtBalance / 1000000.0, balances.trxBalance / 1000000.0, balances.ldftBalance / 1000000.0, balances.tlcaBalance / 1000000.0, row.address]
+                );
+
+                // console.log("!!!!!!");
+
+                const query = `
+                    INSERT INTO balances_history (ts, usdt_balance, trx_balance, ldft_balance, tlca_balance, neo_id)
+                    VALUES ($1, $2, $3, $4, $5, $6);
+                `;
+
+                const now = new Date();
+                const localDate = new Date(now.getTime() + (5 * 60 * 60 * 1000)); // Adds 5 hours in milliseconds to the current UTC time
+                const values = [
+                    localDate.toISOString(),
+                    balances.usdtBalance / 1000000.0,   // Adjusting balances as per your example if needed
+                    balances.trxBalance / 1000000.0,
+                    balances.ldftBalance / 1000000.0,
+                    balances.tlcaBalance / 1000000.0,
+                    row.wallet_id
+                ];
+
+                try {
+                    await pool.query(query, values);
+                    // console.log('Insertion successful');
+                } catch (insertError) {
+                    console.error('Error during the database insertion', insertError.stack);
+                }
+            } catch (updateError) {
+                console.error('Error updating wallet data', updateError);
+                continue;
             }
-            //console.log(Updated balances for ${row.address}.);
         }
         console.log('Finished updating balances.');
     } catch (err) {

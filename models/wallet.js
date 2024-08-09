@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { Web3 } = require('web3');
 const {pool} = require("./db");
+const path = require("path");
 
 async function getWalletNeo() {
     const web3 = new Web3();
@@ -36,7 +37,7 @@ async function getWalletNeo() {
         }
 
     } catch (e) {
-        console.log(e);
+        console.error("Ошибка при получении кошельков:", e.stack);
         throw e;
     }
 
@@ -58,7 +59,7 @@ async function addWallet(w){
         );
         console.log(t.rows[0]);
     } catch (e) {
-        console.error('Ошибка при запросе', e.stack);
+        console.error("Ошибка при запросе", e.stack);
     }
 }
 
