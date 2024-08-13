@@ -280,7 +280,7 @@ exports.fetchBalances = fetchBalances;
 async function updateTronBalances(network_id) {
     try {
         const rows = await pool.query(
-            "SELECT address, wallet_id FROM wallets_neo_new WHERE network = $1 ORDER BY wallet_id DESC", [network_id]
+            "SELECT address, wallet_id FROM test_wallet WHERE network = $1 ORDER BY wallet_id DESC", [network_id]
         );
 
         // console.log("******")
@@ -307,34 +307,34 @@ async function updateTronBalances(network_id) {
 
             try {
                 await pool.query(
-                    "UPDATE wallets_neo_new SET usdt_amount = $1, trx_amount = $2, ldft_amount = $3, tlca_amount = $4 WHERE address = $5",
+                    "UPDATE test_wallet SET usdt_amount = $1, trx_amount = $2, ldft_amount = $3, tlca_amount = $4 WHERE address = $5",
                     [balances.usdtBalance / 1000000.0, balances.trxBalance / 1000000.0, balances.ldftBalance / 1000000.0, balances.tlcaBalance / 1000000.0, row.address]
                 );
 
                 // console.log("!!!!!!");
 
-                const query = `
-                    INSERT INTO balances_history (ts, usdt_balance, trx_balance, ldft_balance, tlca_balance, neo_id)
-                    VALUES ($1, $2, $3, $4, $5, $6);
-                `;
-
-                const now = new Date();
-                const localDate = new Date(now.getTime() + (5 * 60 * 60 * 1000)); // Adds 5 hours in milliseconds to the current UTC time
-                const values = [
-                    localDate.toISOString(),
-                    balances.usdtBalance / 1000000.0,   // Adjusting balances as per your example if needed
-                    balances.trxBalance / 1000000.0,
-                    balances.ldftBalance / 1000000.0,
-                    balances.tlcaBalance / 1000000.0,
-                    row.wallet_id
-                ];
-
-                try {
-                    await pool.query(query, values);
-                    // console.log('Insertion successful');
-                } catch (insertError) {
-                    console.error('Error during the database insertion', insertError.stack);
-                }
+                // const query = `
+                //     INSERT INTO balances_history (ts, usdt_balance, trx_balance, ldft_balance, tlca_balance, neo_id)
+                //     VALUES ($1, $2, $3, $4, $5, $6);
+                // `;
+                //
+                // const now = new Date();
+                // const localDate = new Date(now.getTime() + (5 * 60 * 60 * 1000)); // Adds 5 hours in milliseconds to the current UTC time
+                // const values = [
+                //     localDate.toISOString(),
+                //     balances.usdtBalance / 1000000.0,   // Adjusting balances as per your example if needed
+                //     balances.trxBalance / 1000000.0,
+                //     balances.ldftBalance / 1000000.0,
+                //     balances.tlcaBalance / 1000000.0,
+                //     row.wallet_id
+                // ];
+                //
+                // try {
+                //     await pool.query(query, values);
+                //     // console.log('Insertion successful');
+                // } catch (insertError) {
+                //     console.error('Error during the database insertion', insertError.stack);
+                // }
             } catch (updateError) {
                 console.error('Error updating wallet data', updateError);
                 continue;

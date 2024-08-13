@@ -6,7 +6,8 @@ const trxR = require('./routes/trxR');
 const admR = require('./routes/admR');
 const account = require("./models/account")
 
-const wt = require("./models/wallet")
+const wt = require("./models/wallet");
+const cron = require('node-cron');
 
 const trx = express();
 
@@ -22,9 +23,6 @@ trx.use('/', admR)
 
 trx.use(express.static('public'));
 
-const interval = 6 * 60 * 60 * 1000;
-const dailyInterval = 24 * 60 * 60 * 1000;
-
 const updateWallets = async () => {
     try {
         await wt.getWalletNeo();
@@ -38,8 +36,18 @@ const updateWallets = async () => {
     }
 };
 
+let isTaskRunning = false;
+
 const updateBalancesTask = async () => {
+    if (isTaskRunning) {
+        console.log('Задача уже выполняется. Пропуск...');
+        return;
+    }
+
+    isTaskRunning = true;
+
     try {
+        console.log('Запуск задачи обновления баланса...');
         await account.updateTronBalances(5000);
         console.log('Баланс обновлен.');
     } catch (e) {
@@ -48,18 +56,25 @@ const updateBalancesTask = async () => {
         } else {
             console.error('Ошибка при обновлении балансов:', e);
         }
+    } finally {
+        isTaskRunning = false;
     }
 };
 
 if (process.env.DO_NOT_START_BG_TASKS !== 'true') {
 
-    setInterval(updateWallets, interval);
-    // setInterval(updateBalancesTask, dailyInterval);
+    cron.schedule('0 7 * * *', () => {
+        console.log('Запуск задачи обновления баланса...');
+        updateBalancesTask().then().catch(error => {
+            console.error('Ошибка при выполнении задачи обновления балансов:', error);
+        });
+    });
 
-    updateBalancesTask().then(() => {
-        console.log('Задача обновления балансов завершена.');
-    }).catch(error => {
-        console.error('Ошибка при выполнении задачи обновления балансов:', error);
+    cron.schedule('0 */6 * * *', () => {
+        console.log('Запуск задачи добавления кошельков...');
+        updateWallets().then().catch(error => {
+            console.error('Ошибка при выполнении задачи добавления кошельков:', error);
+        });
     });
 
 }
