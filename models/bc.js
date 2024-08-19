@@ -761,7 +761,7 @@ async function searchTLCATX(network_id, walletAddressTemp) {
         const limit = 200; // Adjust based on what you find optimal
         let transactions = [];
         let moreTransactions = true;
-        let url = `https://api.trongrid.io/v1/accounts/` + walletAddress + `/transactions?&only_confirmed=true&limit=200`;
+        let url = `https://api.trongrid.io/v1/accounts/` + walletAddress + `/transactions?&only_confirmed=true&limit=200&min_block_timestamp=1722932196000`;
 
         while (moreTransactions) {
             const response = await axios.get(url, config);

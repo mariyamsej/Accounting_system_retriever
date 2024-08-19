@@ -252,7 +252,7 @@ exports.addAssetTx = addAssetTx
 /////
 
 const addTxTest = async function(tx,network_id, block_num_input = -1){
-    const forCrypto = false;
+
     if (tx.raw_data.contract[0].type === 'TriggerSmartContract') {
         const data = tx.raw_data.contract[0].parameter.value.data
         const fn_hex = data.substring(0,8)
@@ -268,27 +268,8 @@ const addTxTest = async function(tx,network_id, block_num_input = -1){
             const value = toBNtext(value_txt)
             const fee = tx.ret[0].fee ? tx.ret[0].fee : 0
 
-            if (forCrypto) {
-                const t = await pool.query(
-                    "SELECT * FROM crypto_add_tx($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
-                    [
-                        tx.txID,
-                        +tx.raw_data.timestamp,
-                        +network_id,
-                        from,
-                        to,
-                        contract_addr,
-                        value,
-                        allToHEX(value_txt),
-                        (tx.blockNumber !== undefined) ? tx.blockNumber : block_num_input,
-                        toBNtext(fee),
-                        allToHEX(fee),
-                        {contractRet:tx.ret[0].contractRet,type:tx.raw_data.contract[0].type,data:tx.raw_data.contract[0].parameter.value.data}
-                    ]
-                )
-            } else {
-                const t = await pool.query(
-                    "SELECT * FROM f_add_tx($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
+            const t = await pool.query(
+                    "SELECT * FROM f_add_tx_test($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
                     [
                         tx.txID,
                         +tx.raw_data.timestamp,
@@ -307,7 +288,7 @@ const addTxTest = async function(tx,network_id, block_num_input = -1){
             }
             //console.log('tx_id is :',t.rows[0].id)
         }
-    } else if (tx.raw_data.contract[0].type === 'TransferContract') {
+    else if (tx.raw_data.contract[0].type === 'TransferContract') {
 
         const _to_txt = tx.raw_data.contract[0].parameter.value.to_address
 
@@ -317,34 +298,10 @@ const addTxTest = async function(tx,network_id, block_num_input = -1){
         const value = tx.raw_data.contract[0].parameter.value.amount
         const value_txt = allToHEX(value)
         const fee = tx.ret[0].fee ? tx.ret[0].fee : 0
-        console.log(forCrypto)
-        if (forCrypto) {
-            try {
+
+        try {
                 const t = await pool.query(
-                    "SELECT * FROM crypto_add_tx($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
-                    [
-                        tx.txID,
-                        +tx.raw_data.timestamp,
-                        +network_id,
-                        from,
-                        to,
-                        contract_addr,
-                        value,
-                        value_txt,
-                        (tx.blockNumber !== undefined) ? tx.blockNumber : block_num_input,
-                        toBNtext(fee),
-                        allToHEX(fee),
-                        '{"contractRet":"'+tx.ret[0].contractRet+'","type":"'+tx.raw_data.contract[0].type+'"}'
-                    ]
-                )
-                //console.log('tx is :',JSON.stringify(t.rows[0]))
-            } catch (e) {
-                console.log('!!!e :',e)
-            }
-        } else {
-            try {
-                const t = await pool.query(
-                    "SELECT * FROM f_add_tx($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
+                    "SELECT * FROM f_add_tx_test($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
                     [
                         tx.txID,
                         +tx.raw_data.timestamp,
@@ -365,7 +322,7 @@ const addTxTest = async function(tx,network_id, block_num_input = -1){
                 console.log('!!!e :',e)
             }
         }
-    } else if (tx.raw_data.contract[0].type === 'TransferAssetContract') {
+    else if (tx.raw_data.contract[0].type === 'TransferAssetContract') {
 
         const _to_txt = tx.raw_data.contract[0].parameter.value.to_address
 
@@ -377,7 +334,7 @@ const addTxTest = async function(tx,network_id, block_num_input = -1){
         const fee = tx.ret[0].fee ? tx.ret[0].fee : 0
         try {
             const t = await pool.query(
-                "SELECT * FROM f_add_tx($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
+                "SELECT * FROM f_add_tx_test($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
                 [
                     tx.txID,
                     +tx.raw_data.timestamp,
