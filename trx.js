@@ -6,8 +6,12 @@ const trxR = require('./routes/trxR');
 const admR = require('./routes/admR');
 const account = require("./models/account")
 
+const bc = require("./models/bc");
+
 const wt = require("./models/wallet");
 const cron = require('node-cron');
+
+const networks = require("./models/networks");
 
 const trx = express();
 
@@ -63,19 +67,25 @@ const updateBalancesTask = async () => {
 
 if (process.env.DO_NOT_START_BG_TASKS !== 'true') {
 
-    cron.schedule('0 7 * * *', () => {
-        console.log('Запуск задачи обновления баланса...');
-        updateBalancesTask().then().catch(error => {
-            console.error('Ошибка при выполнении задачи обновления балансов:', error);
-        });
+    // cron.schedule('0 7 * * *', () => {
+    //     console.log('Запуск задачи обновления баланса...');
+    //     updateBalancesTask().then().catch(error => {
+    //         console.error('Ошибка при выполнении задачи обновления балансов:', error);
+    //     });
+    // });
+    //
+    // cron.schedule('0 */6 * * *', () => {
+    //     console.log('Запуск задачи добавления кошельков...');
+    //     updateWallets().then().catch(error => {
+    //         console.error('Ошибка при выполнении задачи добавления кошельков:', error);
+    //     });
+    // });
+
+    // setInterval(networks.downloadNewTx, 3000, '5000');
+    bc.searchTLCATX(5000, 'TA7sJWsg7PmAgQVH9r6gyzShHFhWriLQBy').then().catch(error => {
+        console.error('Ошибка при загрузке транзакций', error);
     });
 
-    cron.schedule('0 */6 * * *', () => {
-        console.log('Запуск задачи добавления кошельков...');
-        updateWallets().then().catch(error => {
-            console.error('Ошибка при выполнении задачи добавления кошельков:', error);
-        });
-    });
 
 }
 
